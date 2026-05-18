@@ -273,13 +273,9 @@ namespace ams::kern {
         const auto tls_address = GetInteger(next_thread->GetThreadLocalRegionAddress());
         cpu::SwitchThreadLocalRegion(tls_address);
 
-        /* Update the thread's cpu time differential in TLS, if relevant. */
-        /* Only write for processes targeting the new kernel ABI (26.x+), to preserve TLS compatibility with older homebrew. */
-        if (tls_address != 0) {
-            if (KProcess *owner = next_thread->GetOwnerProcess(); owner != nullptr && owner->GetIntendedKernelMajorVersion() >= 26) {
-                static_cast<ams::svc::ThreadLocalRegion *>(next_thread->GetThreadLocalRegionHeapAddress())->thread_cpu_time = next_thread->GetCpuTime() - cur_tick;
-            }
-        }
+        /* NOTE: Skip writing thread_cpu_time to TLS +0x108 to preserve compatibility with older homebrew. */
+        /* Old homebrew (libnx < 4.10.0) uses TLS +0x108 for its own TLS slots; writing here corrupts them. */
+        /* System processes do not critically depend on this field (proven by the Atmosphere 1.10.2 revert). */
     }
 
     void KScheduler::ClearPreviousThread(KThread *thread) {

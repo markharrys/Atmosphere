@@ -66,10 +66,8 @@ namespace ams::kern::svc {
             /* Add the thread to the handle table. */
             R_TRY(process.GetHandleTable().Add(out, thread));
 
-            /* Pass the thread handle to the thread local region, only for processes targeting the new kernel ABI (26.x+). */
-            if (process.GetIntendedKernelMajorVersion() >= 26) {
-                static_cast<ams::svc::ThreadLocalRegion *>(thread->GetThreadLocalRegionHeapAddress())->thread_handle = *out;
-            }
+            /* Pass the thread handle to the thread local region. */
+            static_cast<ams::svc::ThreadLocalRegion *>(thread->GetThreadLocalRegionHeapAddress())->thread_handle = *out;
 
             R_SUCCEED();
         }
