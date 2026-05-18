@@ -274,8 +274,11 @@ namespace ams::kern {
         cpu::SwitchThreadLocalRegion(tls_address);
 
         /* Update the thread's cpu time differential in TLS, if relevant. */
+        /* Only write for processes targeting the new kernel ABI (26.x+), to preserve TLS compatibility with older homebrew. */
         if (tls_address != 0) {
-            static_cast<ams::svc::ThreadLocalRegion *>(next_thread->GetThreadLocalRegionHeapAddress())->thread_cpu_time = next_thread->GetCpuTime() - cur_tick;
+            if (KProcess *owner = next_thread->GetOwnerProcess(); owner != nullptr && owner->GetIntendedKernelMajorVersion() >= 26) {
+                static_cast<ams::svc::ThreadLocalRegion *>(next_thread->GetThreadLocalRegionHeapAddress())->thread_cpu_time = next_thread->GetCpuTime() - cur_tick;
+            }
         }
     }
 
