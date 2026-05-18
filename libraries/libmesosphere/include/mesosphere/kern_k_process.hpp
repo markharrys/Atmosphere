@@ -239,6 +239,8 @@ namespace ams::kern {
 
             const svc::SvcAccessFlagSet &GetSvcPermissions() const { return m_capabilities.GetSvcPermissions(); }
 
+            constexpr u32 GetIntendedKernelMajorVersion() const { return m_capabilities.GetIntendedKernelMajorVersion(); }
+
             constexpr KResourceLimit *GetResourceLimit() const { return m_resource_limit; }
 
             bool ReserveResource(ams::svc::LimitableResource which, s64 value);
