@@ -67,10 +67,12 @@ namespace ams::kern::svc {
             R_TRY(process.GetHandleTable().Add(out, thread));
 
             /* Pass the thread handle to the thread local region. */
-            /* NOTE: This writes once at thread creation. Old homebrew (libnx < 4.10.0) will overwrite +0x110 */
-            /* during its own TLS slot initialization, so this one-time write is benign for old homebrew. */
-            /* System processes on FW 22.x require this field — skipping it causes a boot hang. */
-            static_cast<ams::svc::ThreadLocalRegion *>(thread->GetThreadLocalRegionHeapAddress())->thread_handle = *out;
+            /* NOTE: Only write for non-Application processes. Old homebrew (libnx < 4.10.0) compiled for ABI < 26 */
+            /* uses TLS +0x108..+0x188 for its own TLS slots; writing +0x110 corrupts slot 1. */
+            /* System modules and applets need this field for FW 22.x ABI compliance — skipping causes a boot hang. */
+            if (!process.IsApplication()) {
+                static_cast<ams::svc::ThreadLocalRegion *>(thread->GetThreadLocalRegionHeapAddress())->thread_handle = *out;
+            }
 
             R_SUCCEED();
         }

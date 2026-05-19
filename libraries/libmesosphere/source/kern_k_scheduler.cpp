@@ -273,10 +273,15 @@ namespace ams::kern {
         const auto tls_address = GetInteger(next_thread->GetThreadLocalRegionAddress());
         cpu::SwitchThreadLocalRegion(tls_address);
 
-        /* NOTE: Skip writing thread_cpu_time to TLS +0x108 to preserve compatibility with older homebrew. */
-        /* Old homebrew (libnx < 4.10.0) uses TLS +0x108 for its own TLS slot 0; the continuous per-context-switch */
-        /* write here corrupts it. thread_handle (+0x110) IS still written once at thread creation — see */
-        /* kern_k_process.cpp and kern_svc_thread.cpp — because system processes on FW 22.x require it. */
+        /* Update the thread's cpu time differential in TLS, if relevant. */
+        /* NOTE: Only write for non-Application processes. Old homebrew (libnx < 4.10.0) compiled for ABI < 26 */
+        /* uses TLS +0x108 for its own TLS slot 0; the continuous per-context-switch write corrupts it. */
+        /* System modules and applets need this field for FW 22.x ABI compliance. */
+        if (tls_address != 0) {
+            if (KProcess *next_process = next_thread->GetOwnerProcess(); next_process != nullptr && !next_process->IsApplication()) {
+                static_cast<ams::svc::ThreadLocalRegion *>(next_thread->GetThreadLocalRegionHeapAddress())->thread_cpu_time = next_thread->GetCpuTime() - cur_tick;
+            }
+        }
     }
 
     void KScheduler::ClearPreviousThread(KThread *thread) {
