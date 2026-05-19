@@ -274,8 +274,8 @@ namespace ams::kern {
         cpu::SwitchThreadLocalRegion(tls_address);
 
         /* NOTE: Skip writing thread_cpu_time to TLS +0x108 to preserve compatibility with older homebrew. */
-        /* Old homebrew (libnx < 4.10.0) uses TLS +0x108 for its own TLS slots; writing here corrupts them. */
-        /* System processes do not critically depend on this field (proven by the Atmosphere 1.10.2 revert). */
+        /* Old homebrew (libnx < 4.10.0) uses TLS +0x108..+0x188 for its own TLS slots; writing here corrupts them. */
+        /* thread_handle (+0x110) is also not written — see kern_k_process.cpp and kern_svc_thread.cpp. */
     }
 
     void KScheduler::ClearPreviousThread(KThread *thread) {
