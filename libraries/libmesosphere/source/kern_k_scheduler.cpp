@@ -274,12 +274,16 @@ namespace ams::kern {
         cpu::SwitchThreadLocalRegion(tls_address);
 
         /* Update the thread's cpu time differential in TLS, if relevant. */
-        /* NOTE: Only write for non-Application processes. Old homebrew (libnx < 4.10.0) compiled for ABI < 26 */
-        /* uses TLS +0x108 for its own TLS slot 0; the continuous per-context-switch write corrupts it. */
-        /* System modules and applets need this field for FW 22.x ABI compliance. */
+        /* NOTE: Only write for system pool processes (System/SystemNonSecure). Old homebrew (libnx < 4.10.0) */
+        /* compiled for ABI < 26 uses TLS +0x108 for its own TLS slot 0; the continuous per-context-switch */
+        /* write corrupts it. Application AND Applet pool processes may run old homebrew (NSP forwarders, */
+        /* Album+R via hbloader), so both must be excluded. */
         if (tls_address != 0) {
-            if (KProcess *next_process = next_thread->GetOwnerProcess(); next_process != nullptr && !next_process->IsApplication()) {
-                static_cast<ams::svc::ThreadLocalRegion *>(next_thread->GetThreadLocalRegionHeapAddress())->thread_cpu_time = next_thread->GetCpuTime() - cur_tick;
+            if (KProcess *next_process = next_thread->GetOwnerProcess(); next_process != nullptr) {
+                const auto pool = next_process->GetMemoryPool();
+                if (pool == KMemoryManager::Pool_System || pool == KMemoryManager::Pool_SystemNonSecure) {
+                    static_cast<ams::svc::ThreadLocalRegion *>(next_thread->GetThreadLocalRegionHeapAddress())->thread_cpu_time = next_thread->GetCpuTime() - cur_tick;
+                }
             }
         }
     }
