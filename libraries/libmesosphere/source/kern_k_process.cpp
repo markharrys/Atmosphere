@@ -981,9 +981,11 @@ namespace ams::kern {
         /* Set the thread arguments. */
         main_thread->GetContext().SetArguments(0, thread_handle);
 
-        /* NOTE: Skip writing thread_handle to TLS +0x110 to preserve compatibility with older homebrew. */
-        /* Old homebrew (libnx < 4.10.0) uses TLS +0x108..+0x188 for its own TLS slots; writing here corrupts them. */
-        /* No code in the Atmosphere codebase reads this field from TLS; it is a write-only convenience value. */
+        /* Pass the thread handle to the thread local region. */
+        /* NOTE: This writes once at process creation. Old homebrew (libnx < 4.10.0) will overwrite +0x110 */
+        /* during its own TLS slot initialization, so this one-time write is benign for old homebrew. */
+        /* System processes on FW 22.x require this field — skipping it causes a boot hang. */
+        static_cast<ams::svc::ThreadLocalRegion *>(main_thread->GetThreadLocalRegionHeapAddress())->thread_handle = thread_handle;
 
         /* Update our state. */
         this->ChangeState((state == State_Created) ? State_Running : State_RunningAttached);
