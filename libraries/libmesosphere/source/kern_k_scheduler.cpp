@@ -273,19 +273,10 @@ namespace ams::kern {
         const auto tls_address = GetInteger(next_thread->GetThreadLocalRegionAddress());
         cpu::SwitchThreadLocalRegion(tls_address);
 
-        /* Update the thread's cpu time differential in TLS, if relevant. */
-        /* NOTE: Only write for system pool processes (System/SystemNonSecure). Old homebrew (libnx < 4.10.0) */
-        /* compiled for ABI < 26 uses TLS +0x108 for its own TLS slot 0; the continuous per-context-switch */
-        /* write corrupts it. Application AND Applet pool processes may run old homebrew (NSP forwarders, */
-        /* Album+R via hbloader), so both must be excluded. */
-        if (tls_address != 0) {
-            if (KProcess *next_process = next_thread->GetOwnerProcess(); next_process != nullptr) {
-                const auto pool = next_process->GetMemoryPool();
-                if (pool == KMemoryManager::Pool_System || pool == KMemoryManager::Pool_SystemNonSecure) {
-                    static_cast<ams::svc::ThreadLocalRegion *>(next_thread->GetThreadLocalRegionHeapAddress())->thread_cpu_time = next_thread->GetCpuTime() - cur_tick;
-                }
-            }
-        }
+        /* NOTE: Skip writing thread_cpu_time to TLS +0x108 for ALL processes to preserve old homebrew compat. */
+        /* Old homebrew (libnx < 4.10.0) uses TLS +0x108 for its own TLS slot 0; the continuous per-context-switch */
+        /* write corrupts it. thread_handle (+0x110) is still written unconditionally (one-time, at thread creation) */
+        /* because system processes on FW 22.x require it for mutex operations. */
     }
 
     void KScheduler::ClearPreviousThread(KThread *thread) {

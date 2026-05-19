@@ -67,16 +67,7 @@ namespace ams::kern::svc {
             R_TRY(process.GetHandleTable().Add(out, thread));
 
             /* Pass the thread handle to the thread local region. */
-            /* NOTE: Only write for system pool processes (System/SystemNonSecure). Old homebrew (libnx < 4.10.0) */
-            /* compiled for ABI < 26 uses TLS +0x108..+0x188 for its own TLS slots; writing +0x110 corrupts slot 1. */
-            /* Application AND Applet pool processes may run old homebrew — skipping is safe for them. */
-            /* System modules need this field for FW 22.x ABI compliance — skipping causes a boot hang. */
-            {
-                const auto pool = process.GetMemoryPool();
-                if (pool == KMemoryManager::Pool_System || pool == KMemoryManager::Pool_SystemNonSecure) {
-                    static_cast<ams::svc::ThreadLocalRegion *>(thread->GetThreadLocalRegionHeapAddress())->thread_handle = *out;
-                }
-            }
+            static_cast<ams::svc::ThreadLocalRegion *>(thread->GetThreadLocalRegionHeapAddress())->thread_handle = *out;
 
             R_SUCCEED();
         }
